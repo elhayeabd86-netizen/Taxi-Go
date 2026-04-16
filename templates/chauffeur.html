@@ -28,6 +28,14 @@
                     {% endfor %}
                 </select>
             </div>
+            <div class="form-group">
+                <label>Heure départ (HH:MM)</label>
+                <input type="time" name="heure_depart" placeholder="08:30">
+            </div>
+            <div class="form-group">
+                <label>Heure arrivée (HH:MM)</label>
+                <input type="time" name="heure_arrivee" placeholder="10:45">
+            </div>
         </div>
         <button class="btn btn-primary" type="submit">Pointer et créer une course (6 sièges)</button>
     </form>
@@ -46,6 +54,8 @@
                 <span class="pill pill-ok">File #{{ taxi.queue_num or '—' }}</span>
                 <span class="pill pill-ok">Statut: {{ taxi.status }}</span>
                 <span class="pill {% if taxi.places == 0 %}pill-danger{% else %}pill-ok{% endif %}">Sièges restants: {{ taxi.places }}</span>
+                {% if taxi.heure_depart %}<span class="pill pill-ok">🕐 Départ: {{ taxi.heure_depart }}</span>{% endif %}
+                {% if taxi.heure_arrivee %}<span class="pill pill-ok">🕐 Arrivée: {{ taxi.heure_arrivee }}</span>{% endif %}
             </div>
         </div>
         <div class="trajet-info">

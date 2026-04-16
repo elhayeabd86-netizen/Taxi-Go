@@ -24,6 +24,8 @@ class Taxi(db.Model):
     permis_confiance_path = db.Column(db.String(255), nullable=True)
     autorisation_sortie_path = db.Column(db.String(255), nullable=True)
     agrement_verifie = db.Column(db.Boolean, nullable=False, default=False)
+    heure_depart = db.Column(db.String(5), nullable=True)  # HH:MM format
+    heure_arrivee = db.Column(db.String(5), nullable=True)  # HH:MM format
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 
 
@@ -39,7 +41,9 @@ class Reservation(db.Model):
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nom = db.Column(db.String(50), nullable=False)
+    email = db.Column(db.String(120), nullable=True)
     role = db.Column(db.String(20), nullable=False)  # client | chauffeur | admin
+    code = db.Column(db.String(255), nullable=True)  # Password/code (especially for admin)
 
 
 class Correspondent(db.Model):

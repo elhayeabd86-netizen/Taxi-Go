@@ -5,6 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Taxi GO – Grands taxis Maroc{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .role-indicator {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .role-client { background-color: #e3f2fd; color: #1565c0; }
+        .role-chauffeur { background-color: #f3e5f5; color: #6a1b9a; }
+        .role-admin { background-color: #fff3e0; color: #e65100; }
+        .nav-separator {
+            display: inline-block;
+            color: #ccc;
+            margin: 0 0.5rem;
+        }
+    </style>
 </head>
 <body>
     <header class="site-header">
@@ -13,19 +30,28 @@
         </a>
         <nav class="nav-links">
             {% if session.get('user_id') %}
-                <a href="/passager">🧍 Passager</a>
-                {% if session.get('role') == 'chauffeur' %}
-                    <a href="/chauffeur">🧑‍✈️ Chauffeur</a>
-                {% endif %}
+                <span class="nav-separator">|</span>
+                <strong>{{ session.get('nom', 'Utilisateur') }}</strong>
+                <span class="role-indicator role-{% if session.get('role') == 'chauffeur' %}chauffeur{% elif session.get('role') == 'admin' %}admin{% else %}client{% endif %}">
+                    {% if session.get('role') == 'chauffeur' %}🧑‍✈️ Chauffeur{% elif session.get('role') == 'admin' %}🛠️ Admin{% else %}🧍 Passager{% endif %}
+                </span>
+                <span class="nav-separator">|</span>
+                
                 {% if session.get('role') == 'admin' %}
-                    <a href="/admin">🛠️ Admin</a>
+                    <a href="/admin">🛠️ Gestion Admin</a>
+                {% elif session.get('role') == 'chauffeur' %}
+                    <a href="/chauffeur">🧑‍✈️ Espace Chauffeur</a>
+                    <a href="/passager">🧍 Voir trajets</a>
+                {% else %}
+                    <a href="/passager">🧍 Rechercher trajets</a>
                 {% endif %}
+                
                 <a href="/correspondants">🔔 Sonneries</a>
-                <span class="user-badge">{{ session.get('role', '') }}: {{ session.get('user_id') }}</span>
-                <a href="/logout">تسجيل الخروج | Déconnexion</a>
+                <a href="/logout">Déconnexion</a>
             {% else %}
-                <a href="/login">تسجيل الدخول | Connexion</a>
-                <a href="/register">التسجيل | Inscription</a>
+                <span class="nav-separator">|</span>
+                <a href="/login">🔐 Connexion</a>
+                <a href="/register">📝 Inscription</a>
             {% endif %}
         </nav>
     </header>

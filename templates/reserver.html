@@ -8,6 +8,12 @@
     {% endif %}
     <p class="reservation-route">{{ taxi.ville_depart }} → {{ taxi.ville_arrivee }}</p>
     <p class="reservation-places">Places disponibles : {{ taxi.places }}</p>
+    {% if taxi.heure_depart or taxi.heure_arrivee %}
+    <div style="background-color: #f0f8ff; padding: 1rem; border-radius: 0.5rem; margin: 1rem 0; font-size: 0.95rem;">
+        {% if taxi.heure_depart %}<p>🕐 <strong>Départ :</strong> {{ taxi.heure_depart }}</p>{% endif %}
+        {% if taxi.heure_arrivee %}<p>🕐 <strong>Arrivée :</strong> {{ taxi.heure_arrivee }}</p>{% endif %}
+    </div>
+    {% endif %}
     {% if estimation %}
     <p class="reservation-places">Estimation officielle (1 siège) : {{ estimation }} MAD</p>
     {% endif %}

@@ -48,6 +48,8 @@
                 {% else %}
                   <span class="pill pill-warn">⚠️ Agrément en attente</span>
                 {% endif %}
+                {% if taxi.heure_depart %}<span class="pill pill-ok">🕐 Départ: {{ taxi.heure_depart }}</span>{% endif %}
+                {% if taxi.heure_arrivee %}<span class="pill pill-ok">🕐 Arrivée: {{ taxi.heure_arrivee }}</span>{% endif %}
             </div>
         </div>
         <div class="trajet-info">

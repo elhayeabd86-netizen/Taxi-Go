@@ -5,6 +5,28 @@
 {% block content %}
 <h1>🛠️ Interface Administrateur <span>التحقق والمسارات</span></h1>
 
+{% if require_code %}
+<section class="card" style="max-width: 500px; margin: 2rem auto;">
+    <h2>Vérification du Code Administrateur</h2>
+    <p style="text-align: center; color: #666;">Entrez votre code d'accès administrateur / أدخل رمز الوصول الخاص بك</p>
+    
+    {% if error %}
+    <div style="background-color: #fee; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; color: #c33;">
+        ⚠️ {{ error }}
+    </div>
+    {% endif %}
+    
+    <form method="POST" action="/admin" class="add-taxi-form">
+        <input type="hidden" name="action" value="">
+        <div class="form-group">
+            <label>Code Administrateur</label>
+            <input type="password" name="admin_code" placeholder="•••••" required autofocus>
+        </div>
+        <button class="btn btn-primary" type="submit">Vérifier</button>
+    </form>
+</section>
+{% else %}
+
 <section class="card">
     <h2>Gestion des agréments (taxis + documents)</h2>
     {% if taxis %}
@@ -17,6 +39,8 @@
                     <span class="pill pill-ok">Chauffeur ID: {{ t.chauffeur_id or '—' }}</span>
                     <span class="pill pill-ok">File #{{ t.queue_num or '—' }}</span>
                     <span class="pill pill-ok">Statut: {{ t.status }}</span>
+                    {% if t.heure_depart %}<span class="pill pill-ok">🕐 Départ: {{ t.heure_depart }}</span>{% endif %}
+                    {% if t.heure_arrivee %}<span class="pill pill-ok">🕐 Arrivée: {{ t.heure_arrivee }}</span>{% endif %}
                 </div>
                 <div class="muted" style="margin-top: .45rem; font-size: .95rem;">
                     Permis: {% if t.permis_confiance_path %}<a href="/{{ t.permis_confiance_path }}">Voir</a>{% else %}—{% endif %}
@@ -85,4 +109,6 @@
     <p>Aucune route enregistrée.</p>
     {% endif %}
 </section>
+
+{% endif %}
 {% endblock %}

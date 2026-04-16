@@ -1,7 +1,20 @@
 {% extends "base.html" %}
 
+{% block title %}Accueil – Taxi GO{% endblock %}
+
 {% block content %}
-<h1>🚕 Grands taxis inter-villes <span>لائحة الطاكسيات</span></h1>
+<h1>🚕 Taxi GO <span>طاكسي جو</span></h1>
+<p class="intro-text">Grands taxis inter-villes : recherche, réservation par siège, file d’attente et suivi pour les chauffeurs.</p>
+
+<div class="home-actions">
+    <a href="/passager" class="btn btn-primary">🧍 Rechercher &amp; réserver un trajet</a>
+    {% if session.get('role') == 'chauffeur' %}
+    <a href="/chauffeur" class="btn btn-accent">🧑‍✈️ Espace chauffeur</a>
+    {% endif %}
+    {% if session.get('role') == 'admin' %}
+    <a href="/admin" class="btn btn-accent">🛠️ Administration</a>
+    {% endif %}
+</div>
 
 {% if session.get('user_id') %}
 <p class="sonneries-banner"><a href="/correspondants">🔔 Sonneries par correspondant</a> — une tonalité différente pour chaque contact.</p>
@@ -12,6 +25,7 @@
 {% endif %}
 
 {% if taxis %}
+<h2 style="margin-top: 2rem;">Aperçu des trajets</h2>
 <ul class="trajet-list">
     {% for taxi in taxis %}
     <li class="trajet-card">
@@ -19,55 +33,45 @@
             <span class="trajet-villes">
                 {{ taxi.ville_depart }} <span class="trajet-arrow">→</span> {{ taxi.ville_arrivee }}
             </span>
+            <div style="margin-top: .45rem; display:flex; flex-wrap:wrap; gap:.5rem;">
+                <span class="pill pill-ok">Statut: {{ taxi.status or 'en_attente' }}</span>
+                {% if taxi.queue_num %}<span class="pill pill-ok">File #{{ taxi.queue_num }}</span>{% endif %}
+                {% if taxi.agrement_verifie %}
+                  <span class="pill pill-ok">✅ Agrément vérifié</span>
+                {% else %}
+                  <span class="pill pill-warn">⚠️ Agrément en attente</span>
+                {% endif %}
+                {% if taxi.heure_depart %}<span class="pill pill-ok">🕐 Départ: {{ taxi.heure_depart }}</span>{% endif %}
+                {% if taxi.heure_arrivee %}<span class="pill pill-ok">🕐 Arrivée: {{ taxi.heure_arrivee }}</span>{% endif %}
+            </div>
         </div>
         <div class="trajet-info">
-            <span class="trajet-places">{{ taxi.places }} place{{ 's' if taxi.places > 1 else '' }} dispo</span>
+            <span class="trajet-places">
+                {{ taxi.places }} / {{ taxi.places_total or 6 }} sièges dispo
+            </span>
             <a href="/reserver/{{ taxi.id }}" class="btn btn-primary">حجز | Réserver</a>
+            <button type="button" class="btn btn-accent" onclick="refreshStatus({{ taxi.id }})">Suivi</button>
         </div>
+        <div id="status-{{ taxi.id }}" class="muted" style="margin-top:.5rem; font-size:.92rem;"></div>
     </li>
     {% endfor %}
 </ul>
+<p style="margin-top: 1rem;"><a href="/passager">Voir tous les trajets avec filtres →</a></p>
 {% else %}
-<p>Aucun trajet disponible pour le moment. Soyez le premier à proposer un trajet !</p>
+<p style="margin-top: 1.5rem;">Aucun trajet pour le moment. Les chauffeurs peuvent pointer une course depuis l’espace <a href="/chauffeur">chauffeur</a>.</p>
 {% endif %}
 
-{% if session.get('role') == 'chauffeur' %}
-<hr style="margin: 2rem 0; border: none; border-top: 1px solid #E0E0E0;">
-<h2>➕ إضافة طاكسي جديد | Ajouter un trajet</h2>
-<form method="POST" action="/ajouter_taxi" class="add-taxi-form">
-    <div class="form-row">
-        <div class="form-group">
-            <label>Ville de départ | مدينة الانطلاق</label>
-            <select name="ville_depart" required>
-                <option value="">Choisir...</option>
-                <option value="Casablanca">Casablanca الدار البيضاء</option>
-                <option value="Rabat">Rabat الرباط</option>
-                <option value="Fes">Fès فاس</option>
-                <option value="Marrakech">Marrakech مراكش</option>
-                <option value="Tangier">Tanger طنجة</option>
-                <option value="Agadir">Agadir أكادير</option>
-                <option value="Oujda">Oujda وجدة</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Ville d'arrivée | مدينة الوصول</label>
-            <select name="ville_arrivee" required>
-                <option value="">Choisir...</option>
-                <option value="Casablanca">Casablanca الدار البيضاء</option>
-                <option value="Rabat">Rabat الرباط</option>
-                <option value="Fes">Fès فاس</option>
-                <option value="Marrakech">Marrakech مراكش</option>
-                <option value="Tangier">Tanger طنجة</option>
-                <option value="Agadir">Agadir أكادير</option>
-                <option value="Oujda">Oujda وجدة</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Places | البلايص</label>
-            <input type="number" name="places" placeholder="6" min="1" max="15" required>
-        </div>
-    </div>
-    <button type="submit" class="btn btn-primary">إضافة | Ajouter</button>
-</form>
-{% endif %}
+<script>
+async function refreshStatus(id) {
+  const el = document.getElementById('status-' + id);
+  el.textContent = 'Chargement…';
+  try {
+    const r = await fetch('/api/taxi/' + id + '/status');
+    const d = await r.json();
+    el.textContent = 'Position: ' + (d.lat ?? '—') + ', ' + (d.lng ?? '—') + ' | Occupées: ' + d.places_occupees + '/' + d.places_total;
+  } catch (e) {
+    el.textContent = 'Erreur de suivi.';
+  }
+}
+</script>
 {% endblock %}

@@ -47,12 +47,18 @@ def _ensure_schema_upgrades():
     _ensure_table_column('taxi', 'permis_confiance_path', "permis_confiance_path VARCHAR(255)")
     _ensure_table_column('taxi', 'autorisation_sortie_path', "autorisation_sortie_path VARCHAR(255)")
     _ensure_table_column('taxi', 'agrement_verifie', "agrement_verifie BOOLEAN NOT NULL DEFAULT 0")
+    _ensure_table_column('taxi', 'heure_depart', "heure_depart VARCHAR(5)")
+    _ensure_table_column('taxi', 'heure_arrivee', "heure_arrivee VARCHAR(5)")
     _ensure_table_column('taxi', 'created_at', "created_at DATETIME")
 
     # Reservation
     _ensure_table_column('reservation', 'seats', "seats INTEGER NOT NULL DEFAULT 1")
     _ensure_table_column('reservation', 'payment_method', "payment_method VARCHAR(20) NOT NULL DEFAULT 'cash'")
     _ensure_table_column('reservation', 'created_at', "created_at DATETIME")
+    
+    # User
+    _ensure_table_column('user', 'code', "code VARCHAR(255)")
+    _ensure_table_column('user', 'email', "email VARCHAR(120)")
 
 
 def _seed_fixed_routes_if_empty():
@@ -149,6 +155,8 @@ def chauffeur():
             max_q = db.session.execute(text("SELECT COALESCE(MAX(queue_num), 0) FROM taxi")).scalar() or 0
             ville_depart = (request.form.get('ville_depart') or '').strip()
             ville_arrivee = (request.form.get('ville_arrivee') or '').strip()
+            heure_depart = (request.form.get('heure_depart') or '').strip()
+            heure_arrivee = (request.form.get('heure_arrivee') or '').strip()
             if ville_depart and ville_arrivee:
                 taxi = Taxi(
                     ville_depart=ville_depart,
@@ -158,6 +166,8 @@ def chauffeur():
                     queue_num=int(max_q) + 1,
                     chauffeur_id=uid,
                     status="en_attente",
+                    heure_depart=heure_depart if heure_depart else None,
+                    heure_arrivee=heure_arrivee if heure_arrivee else None,
                 )
                 db.session.add(taxi)
                 db.session.commit()
@@ -197,45 +207,52 @@ def chauffeur():
 def admin():
     if not _require_login() or not _require_role('admin'):
         return redirect('/login')
+    
+    # Check for admin code verification
+    admin_code_verified = session.get('admin_code_verified', False)
+    
     if request.method == 'POST':
-        action = request.form.get('action') or ''
-        if action == 'toggle_agrement':
-            taxi_id = request.form.get('taxi_id', type=int)
-            taxi = Taxi.query.get(taxi_id)
-            if taxi:
-                taxi.agrement_verifie = not bool(taxi.agrement_verifie)
-                db.session.commit()
-        elif action == 'add_route':
-            d = (request.form.get('ville_depart') or '').strip()
-            a = (request.form.get('ville_arrivee') or '').strip()
-            p = request.form.get('prix_par_siege', type=float)
-            if d and a and p is not None and p > 0:
-                db.session.add(FixedRoute(ville_depart=d, ville_arrivee=a, prix_par_siege=float(p), actif=True))
-                db.session.commit()
-        elif action == 'toggle_route':
-            rid = request.form.get('route_id', type=int)
-            r = FixedRoute.query.get(rid)
-            if r:
-                r.actif = not bool(r.actif)
-                db.session.commit()
-        return redirect('/admin')
+        # Handle admin code verification
+        if not admin_code_verified:
+            admin_code = (request.form.get('admin_code') or '').strip()
+            user = User.query.get(_current_user_id())
+            if user and user.code and user.code == admin_code:
+                session['admin_code_verified'] = True
+                admin_code_verified = True
+            else:
+                return render_template('admin.html', error="Code administrateur incorrect / رمز المسؤول غير صحيح")
+        
+        # If code is verified, process admin actions
+        if admin_code_verified:
+            action = request.form.get('action') or ''
+            if action == 'toggle_agrement':
+                taxi_id = request.form.get('taxi_id', type=int)
+                taxi = Taxi.query.get(taxi_id)
+                if taxi:
+                    taxi.agrement_verifie = not bool(taxi.agrement_verifie)
+                    db.session.commit()
+            elif action == 'add_route':
+                d = (request.form.get('ville_depart') or '').strip()
+                a = (request.form.get('ville_arrivee') or '').strip()
+                p = request.form.get('prix_par_siege', type=float)
+                if d and a and p is not None and p > 0:
+                    db.session.add(FixedRoute(ville_depart=d, ville_arrivee=a, prix_par_siege=float(p), actif=True))
+                    db.session.commit()
+            elif action == 'toggle_route':
+                rid = request.form.get('route_id', type=int)
+                r = FixedRoute.query.get(rid)
+                if r:
+                    r.actif = not bool(r.actif)
+                    db.session.commit()
+            return redirect('/admin')
+    
+    # If code not verified, show code entry form
+    if not admin_code_verified:
+        return render_template('admin.html', require_code=True)
+    
     taxis = Taxi.query.order_by(Taxi.created_at.desc()).all()
     routes = FixedRoute.query.order_by(FixedRoute.ville_depart.asc(), FixedRoute.ville_arrivee.asc()).all()
     return render_template('admin.html', taxis=taxis, routes=routes)
-
-# إضافة طاكسي (خاص بالسائق)
-@app.route('/ajouter_taxi', methods=['POST'])
-def ajouter_taxi():
-    if 'role' not in session or session['role'] != 'chauffeur':
-        taxis = Taxi.query.all()
-        return render_template('index.html', taxis=taxis, error="Accès refusé. Connectez-vous en tant que chauffeur.")
-    ville_depart = request.form['ville_depart']
-    ville_arrivee = request.form['ville_arrivee']
-    # dans Taxi GO : on remplit 6 sièges
-    taxi = Taxi(ville_depart=ville_depart, ville_arrivee=ville_arrivee, places=6, places_total=6, chauffeur_id=_current_user_id())
-    db.session.add(taxi)
-    db.session.commit()
-    return redirect('/')
 
 # الحجز (خاص بالزبون)
 @app.route('/reserver/<int:taxi_id>', methods=['GET', 'POST'])
@@ -277,6 +294,8 @@ def api_taxi_status(taxi_id):
         "lng": taxi.current_lng,
         "agrement_verifie": bool(taxi.agrement_verifie),
         "queue_num": taxi.queue_num,
+        "heure_depart": taxi.heure_depart,
+        "heure_arrivee": taxi.heure_arrivee,
     })
 
 # تسجيل جديد
@@ -285,16 +304,27 @@ def register():
     if request.method == 'POST':
         nom = request.form['nom']
         role = request.form['role']
+        email = request.form.get('email', '').strip()
+        code = request.form.get('code', '').strip()
+        
         if role not in ('client', 'chauffeur', 'admin'):
             role = 'client'
-        user = User(nom=nom, role=role)
+        
+        # Admin requires a code
+        if role == 'admin' and not code:
+            return render_template('register.html', error="Code administrateur requis / رمز المسؤول مطلوب")
+        
+        user = User(nom=nom, role=role, email=email, code=code if code else None)
         db.session.add(user)
         db.session.commit()
         session['user_id'] = user.id
+        session['nom'] = user.nom
         session['role'] = user.role
+        
         if role == 'chauffeur':
             return redirect('/chauffeur')
         if role == 'admin':
+            session['admin_code_verified'] = False  # Require code verification on first login
             return redirect('/admin')
         return redirect('/passager')
     return render_template('register.html')
@@ -307,11 +337,14 @@ def login():
         user = User.query.filter_by(nom=nom).first()
         if user:
             session['user_id'] = user.id
+            session['nom'] = user.nom
             session['role'] = user.role
+            # Admin requires code verification
+            if user.role == 'admin':
+                session['admin_code_verified'] = False
+                return redirect('/admin')
             if user.role == 'chauffeur':
                 return redirect('/chauffeur')
-            if user.role == 'admin':
-                return redirect('/admin')
             return redirect('/passager')
         else:
             return render_template('login.html', error="Utilisateur introuvable / المستخدم ما موجود")
