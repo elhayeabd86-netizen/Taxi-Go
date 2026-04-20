@@ -16,10 +16,6 @@
     {% endif %}
 </div>
 
-{% if session.get('user_id') %}
-<p class="sonneries-banner"><a href="/correspondants">🔔 Sonneries par correspondant</a> — une tonalité différente pour chaque contact.</p>
-{% endif %}
-
 {% if error %}
 <div class="error-msg">{{ error }}</div>
 {% endif %}

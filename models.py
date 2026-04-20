@@ -46,14 +46,6 @@ class User(db.Model):
     code = db.Column(db.String(255), nullable=True)  # Password/code (especially for admin)
 
 
-class Correspondent(db.Model):
-    """Contact avec une sonnerie personnalisée (clé utilisée côté client pour Web Audio)."""
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    nom = db.Column(db.String(80), nullable=False)
-    sonnerie = db.Column(db.String(32), nullable=False, default='classic')
-
-
 class FixedRoute(db.Model):
     """Routes fixes + tarif officiel par siège (géré côté admin)."""
     id = db.Column(db.Integer, primary_key=True)

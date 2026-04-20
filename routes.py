@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template, request, redirect, session, jsonify
 from sqlalchemy import inspect, text
-from models import db, Taxi, Reservation, User, Correspondent, FixedRoute
+from models import db, Taxi, Reservation, User, FixedRoute
 
 app = Flask(__name__, instance_path='/tmp')
 app.secret_key = 'secret123'  # باش نخزنوا session
